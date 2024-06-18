@@ -92,7 +92,7 @@ class RoarCompetitionSolution:
 
         # Proportional controller to steer the vehicle towards the target waypoint
         steer_control = (
-            -8.0 / np.sqrt(vehicle_velocity_norm) * delta_heading / np.pi
+            -8.0 / np.cbrt(vehicle_velocity_norm) * delta_heading / np.pi
         ) if vehicle_velocity_norm > 1e-2 else -np.sign(delta_heading)
         steer_control = np.clip(steer_control, -1.0, 1.0)
 
