@@ -167,7 +167,9 @@ async def evaluate_solution(
         occupancy_map_sensor,
         collision_sensor
     )
-    rule = RoarCompetitionRule(waypoints * 3,vehicle,world) # 3 laps
+
+    numberOfLaps = 1
+    rule = RoarCompetitionRule(waypoints * numberOfLaps,vehicle,world) # 3 laps
 
     for _ in range(20):
         await world.step()
@@ -229,12 +231,12 @@ async def main():
     carla_client.set_timeout(5.0)
     roar_py_instance = roar_py_carla.RoarPyCarlaInstance(carla_client)
     world = roar_py_instance.world
-    world.set_control_steps(0.05, 0.005)
-    world.set_asynchronous(False)
+    world.set_control_steps(0.1, 0.01)
+    world.set_asynchronous(True)
     evaluation_result = await evaluate_solution(
         world,
         RoarCompetitionSolution,
-        max_seconds=5000,
+        max_seconds=2500,
         enable_visualization=True
     )
     if evaluation_result is not None:
