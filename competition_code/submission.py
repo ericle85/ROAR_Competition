@@ -78,6 +78,7 @@ class RoarCompetitionSolution:
         vehicle_rotation = self.rpy_sensor.get_last_gym_observation()
         vehicle_velocity = self.velocity_sensor.get_last_gym_observation()
         vehicle_velocity_norm = np.linalg.norm(vehicle_velocity)
+        globalRadius = 130
         
         # Find the waypoint closest to the vehicle
         self.current_waypoint_idx = filter_waypoints(
@@ -88,30 +89,36 @@ class RoarCompetitionSolution:
 
         def getLookAheadDistance(speed):
             currentSpeed =np.linalg.norm(self.velocity_sensor.get_last_gym_observation()) * 3.6
-            num = 10
+            num = 8
             if (currentSpeed > 110):
-                num = 13
+                num = 8
             if (currentSpeed > 160):
-                num = 14
+                num = 10
             if (currentSpeed > 180):
+                num = 12
+            if currentSpeed > 195:
                 num = 18
-            if currentSpeed > 200:
-                num = 22
 
             return num
             
 
         # We use the 3rd waypoint ahead of the current waypoint as the target waypoint
-        waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + getLookAheadDistance(vehicle_velocity_norm)) % len(self.maneuverable_waypoints)]
 
-        waypointClose = self.maneuverable_waypoints[(self.current_waypoint_idx + getLookAheadDistance(vehicle_velocity_norm) + 3 ) % len(self.maneuverable_waypoints)]
 
-        waypointFar = self.maneuverable_waypoints[(self.current_waypoint_idx + getLookAheadDistance(vehicle_velocity_norm) + 6 ) % len(self.maneuverable_waypoints)]
+        
+        waypointClose = self.maneuverable_waypoints[(self.current_waypoint_idx +  getLookAheadDistance(vehicle_velocity_norm)) % len(self.maneuverable_waypoints)]
 
+        waypointMedium = self.maneuverable_waypoints[(self.current_waypoint_idx + int(getLookAheadDistance(vehicle_velocity_norm) * 1.5) ) % len(self.maneuverable_waypoints)]
+
+        waypointFar = self.maneuverable_waypoints[(self.current_waypoint_idx + int( getLookAheadDistance(vehicle_velocity_norm) * 2) ) % len(self.maneuverable_waypoints)]
+
+
+
+        waypoint_to_follow = waypointClose
         #x and y components of each waypoint
 
-        point1 = (waypointClose.location[0], waypointClose.location[1])
-        point2 = (waypoint_to_follow.location[0], waypoint_to_follow.location[1])
+        point1 = (waypointMedium.location[0], waypointMedium.location[1])
+        point2 = (waypointClose.location[0], waypointClose.location[1])
         point3 = (waypointFar.location[0], waypointFar.location[1])
 
         
@@ -127,17 +134,20 @@ class RoarCompetitionSolution:
         targetSpeed = 20
         # Check if any side lengths are very small
         if l1 < zeroChecker or l2 < zeroChecker or l3 < zeroChecker:
-            targetSpeed = 100  # Set a high value as a default or handle differently
+            targetSpeed = 350  # Set a high value as a default or handle differently
         else:
             # Check if area_squared is non-zero before calculating radius
+            
             if area_squared > 0:
+                
                 radius = (l1 * l2 * l3) / (4 * math.sqrt(area_squared))
-                targetSpeed = math.sqrt(9.81 * 1.525 * radius)
+                globalRadius = radius
+                targetSpeed = math.sqrt(9.81 * 1.1 * radius)
+                print("radius: " + str(radius))
             else:
                 # Handle case where area_squared is zero
                 # This could involve setting targetSpeed to a default value or handling it differently
-                targetSpeed = 10000  # Example of setting targetSpeed to a high value
-
+                targetSpeed = 350  # Example of setting targetSpeed to a high value
 
 
         # Calculate delta vector towards the target waypoint
@@ -149,15 +159,15 @@ class RoarCompetitionSolution:
 
         # Proportional controller to steer the vehicle towards the target waypoint
         steer_control = (
-            -8.0 / np.cbrt(vehicle_velocity_norm) * delta_heading / np.pi
+            -8.0 / np.sqrt(vehicle_velocity_norm) * delta_heading / np.pi
         ) if vehicle_velocity_norm > 1e-2 else -np.sign(delta_heading)
         steer_control = np.clip(steer_control, -1.0, 1.0)
 
+        if globalRadius < 130:
+            throttle_control -= 1
+        else:
+            throttle_control = 0.3 * (targetSpeed - vehicle_velocity_norm)
 
-        # Proportional controller to control the vehicle's speed towards 40 m/s
-        throttle_control = 0.05 * (targetSpeed - vehicle_velocity_norm)
-        print(" speed: " + str(vehicle_velocity_norm * 3.6))
-       
         control = {
             "throttle": np.clip(throttle_control, 0.0, 1.0),
             "steer": steer_control,
