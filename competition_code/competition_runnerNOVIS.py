@@ -77,7 +77,7 @@ class RoarCompetitionRule:
         
         self.furthest_waypoints_index += min_index #= new_furthest_index
         self._last_vehicle_location = current_location
-        # print(f"reach waypoints {self.furthest_waypoints_index} at {self.waypoints[self.furthest_waypoints_index].location}")
+        print(f"waypoints {self.furthest_waypoints_index} at {self.waypoints[self.furthest_waypoints_index].location}")
 
     
     async def respawn(
@@ -167,9 +167,7 @@ async def evaluate_solution(
         occupancy_map_sensor,
         collision_sensor
     )
-
-    numberOfLaps = 1
-    rule = RoarCompetitionRule(waypoints * numberOfLaps,vehicle,world) # 3 laps
+    rule = RoarCompetitionRule(waypoints * 1,vehicle,world) # 3 laps
 
     for _ in range(20):
         await world.step()
@@ -231,13 +229,13 @@ async def main():
     carla_client.set_timeout(5.0)
     roar_py_instance = roar_py_carla.RoarPyCarlaInstance(carla_client)
     world = roar_py_instance.world
-    world.set_control_steps(0.1, 0.01)
-    world.set_asynchronous(True)
+    world.set_control_steps(0.05, 0.005)
+    world.set_asynchronous(False)
     evaluation_result = await evaluate_solution(
         world,
         RoarCompetitionSolution,
-        max_seconds=2500,
-        enable_visualization=True
+        max_seconds=5000,
+        enable_visualization=False
     )
     if evaluation_result is not None:
         print("Solution finished in {} seconds".format(evaluation_result["elapsed_time"]))
