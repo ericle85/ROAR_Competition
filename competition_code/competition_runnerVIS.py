@@ -61,7 +61,7 @@ class RoarCompetitionRule:
 
         previous_furthest_index = self.furthest_waypoints_index
         min_dis = np.inf
-        min_index = 0
+        min_index = 300
         #print(f"Previous furthest index {previous_furthest_index}")
         endind_index = previous_furthest_index + check_step if (previous_furthest_index + check_step <= len(self.waypoints)) else len(self.waypoints)
         for i,waypoint in enumerate(self.waypoints[previous_furthest_index:endind_index]):
@@ -122,8 +122,8 @@ async def evaluate_solution(
     waypoints = world.maneuverable_waypoints
     vehicle = world.spawn_vehicle(
         "vehicle.tesla.model3",
-        waypoints[0].location + np.array([0,0,1]),
-        waypoints[0].roll_pitch_yaw,
+        waypoints[300].location + np.array([0,0,1]),
+        waypoints[300].roll_pitch_yaw,
         True,
     )
     assert vehicle is not None
@@ -199,7 +199,7 @@ async def evaluate_solution(
         collision_impulse_norm = np.linalg.norm(collision_sensor.get_last_observation().impulse_normal)
         if collision_impulse_norm > 100.0:
             # vehicle.close()
-            print(f"major collision of tensity {collision_impulse_norm}, time: {current_time}")
+            print(f"major collision of tensity {collision_impulse_norm}")
             # return None
             await rule.respawn()
         

@@ -86,16 +86,16 @@ class RoarCompetitionSolution:
             self.maneuverable_waypoints
         )
 
-        def getLookAheadDistance():
+        def getLookAheadDistance(speed):
             currentSpeed =np.linalg.norm(self.velocity_sensor.get_last_gym_observation()) * 3.6
             # if (currentSpeed >= 110):
             #     num = 13
-            # elif (currentSpeed >= 160):
+            # if (currentSpeed >= 160):
             #     num = 16
-            # elif (currentSpeed >= 180):
+            # if (currentSpeed >= 180):
             #     num = 20
-            if currentSpeed >= 160:
-                num = 45
+            if currentSpeed >= 195:
+                num = 50
             else:
                 num = 11
 
@@ -104,14 +104,14 @@ class RoarCompetitionSolution:
 
         # We use the 3rd waypoint ahead of the current waypoint as the target waypoint
 
-        waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + getLookAheadDistance()) % len(self.maneuverable_waypoints)]
+        waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 11) % len(self.maneuverable_waypoints)]
         
         def getCurve(current_waypoint_idx):
-            waypointClose = self.maneuverable_waypoints[(current_waypoint_idx + getLookAheadDistance()) % len(self.maneuverable_waypoints)]
+            waypointClose = self.maneuverable_waypoints[(current_waypoint_idx + getLookAheadDistance(vehicle_velocity_norm)) % len(self.maneuverable_waypoints)]
 
-            waypointMedium = self.maneuverable_waypoints[(current_waypoint_idx + getLookAheadDistance() + 1)  % len(self.maneuverable_waypoints)]
+            waypointMedium = self.maneuverable_waypoints[(current_waypoint_idx + getLookAheadDistance(vehicle_velocity_norm) + 15)  % len(self.maneuverable_waypoints)]
 
-            waypointFar = self.maneuverable_waypoints[(current_waypoint_idx +  getLookAheadDistance() + 2) % len(self.maneuverable_waypoints)]
+            waypointFar = self.maneuverable_waypoints[(current_waypoint_idx +  getLookAheadDistance(vehicle_velocity_norm) + 30) % len(self.maneuverable_waypoints)]
            
             point1 = (waypointMedium.location[0], waypointMedium.location[1])
             point2 = (waypointClose.location[0], waypointClose.location[1])
@@ -123,7 +123,7 @@ class RoarCompetitionSolution:
             zeroChecker = 0.01
             sp = (l1 + l2 + l3) / 2
             area_squared =  sp * (sp - l1) * (sp - l2) * (sp - l3)
-            targetSpeed = float('inf')
+            targetSpeed = 1000
             # Check if any side lengths are very small
             if (l1 < zeroChecker) or (l2 < zeroChecker) or (l3 < zeroChecker):
                 targetSpeed = 1000  # Set a high value as a default or handle differently
@@ -162,28 +162,15 @@ class RoarCompetitionSolution:
 
                     targetSpeed = math.sqrt(9.81 * coFriction * radius)
                     
-            return max(25,targetSpeed)
+            return max(20,targetSpeed)
 
 
-        
-        close = getCurve(self.current_waypoint_idx - 5)
-        medium = getCurve(self.current_waypoint_idx + 10)
+            
+        close = getCurve(self.current_waypoint_idx)
+        medium = getCurve(self.current_waypoint_idx + 30)
         far = getCurve(self.current_waypoint_idx + 60)
-        
-        reachedTarget = True
-        targetSpeed = 10000
-    
-       
-        if reachedTarget and targetSpeed > 50 and self.current_waypoint_idx > 15:
-            if vehicle_velocity_norm * 3.6 > 170 :
-                    targetSpeed = min(close, medium, far)
-                    
-            elif vehicle_velocity_norm * 3.6 < 50:
-                targetSpeed = close
-            else:
-                targetSpeed = min(close, medium)
 
-       
+        targetSpeed = close #min(close, medium,far)
         # Calculate delta vector towards the target waypoint
         vector_to_waypoint = (waypoint_to_follow.location - vehicle_location)[:2]
         heading_to_waypoint = np.arctan2(vector_to_waypoint[1],vector_to_waypoint[0])
@@ -200,54 +187,35 @@ class RoarCompetitionSolution:
         
         #throttle_control = 0.8 * (targetSpeed - vehicle_velocity_norm)
        
-        if vehicle_velocity_norm * 3.6 > 40: 
-            target_gear = 2  # Example: Shift to 2nd gear if speed exceeds 50 kph
-        elif vehicle_velocity_norm * 3.6 > 70:
-            target_gear = 3
-        else:
-            target_gear = 1  # Default: Stay in 1st gear if speed is below 50 kph
+    
 
-       
+        maxSpeed = 350
         speed_error = targetSpeed - vehicle_velocity_norm * 3.6  # Convert vehicle speed to kph
         Kp = 5
 
-        # if abs(speed_error) > 5:  # Adjust threshold as needed
-        #     throttle_control = Kp * speed_error
-        # elif abs(speed_error) < 5:
-        #     throttle_control = .08 * speed_error
-        # else:
-        #     throttle_control = 0
-
-            # Determine if reversing is necessary
-        if targetSpeed < 0.5 * vehicle_velocity_norm * 3.6: 
-            throttle_control = -1  # Reverse with full throttle
-            reachedTarget = False
-        else:
-            # Apply proportional controller for throttle
-            speed_error = targetSpeed - vehicle_velocity_norm * 3.6  # Convert vehicle speed to kph
-            Kp = 5
+        if abs(speed_error) > 5:  # Adjust threshold as needed
             throttle_control = Kp * speed_error
-
-        
-        # Apply brake if speed error is small
-        if abs(speed_error) < 5:
-            brake_control = .75
-            reachedTarget = True
+        elif abs(speed_error) < 5:
+            throttle_control = .03 * speed_error
         else:
-            brake_control = 0.0
-            
+            throttle_control = 0
 
-        print("target: " + str(round(targetSpeed,3)) + "| curr kph: " + str(int(vehicle_velocity_norm * 3.6)))
+        # if speed_error > 100:  # Adjust threshold as needed
+        #     throttle_control = 1
+        # elif speed_error < -100:
+        #     throttle_control = -1  # Small error, maintain current throttle
+        # else: throttle_control = .5
 
         
+        print("target: " + str(int(targetSpeed)) + "| curr kph: " + str(int(vehicle_velocity_norm * 3.6)))
 
         control = {
             "throttle": np.clip(throttle_control, 0.0, 1.0),
             "steer": steer_control,
             "brake": np.clip(-throttle_control, 0.0, 1.0),
             "hand_brake": 0.0,
-            "reverse": 0 if throttle_control < 0 else 0,
-            "target_gear": target_gear
+            "reverse": 0,
+            "target_gear": 0
         }
         await self.vehicle.apply_action(control)
         return control
