@@ -50,18 +50,14 @@ class RoarCompetitionSolution:
         vehicle_location = self.location_sensor.get_last_gym_observation()
         vehicle_rotation = self.rpy_sensor.get_last_gym_observation()
         vehicle_velocity = self.velocity_sensor.get_last_gym_observation()
+        
 
-
-
-        self.current_waypoint_idx = 13
+        self.current_waypoint_idx = 0
         self.current_waypoint_idx = filter_waypoints(
             vehicle_location,
             self.current_waypoint_idx,
             self.maneuverable_waypoints
         )
-
-
-   
 
     async def step(
         self
@@ -89,10 +85,11 @@ class RoarCompetitionSolution:
 
         def getLookAheadDistance():
             currentSpeed =np.linalg.norm(self.velocity_sensor.get_last_gym_observation()) * 3.6
-            if currentSpeed >= 160:
+            if currentSpeed >= 180:
                 num = 35
             else:
-                num = 11
+                num = 9
+            
             return num
         waypointClose = self.maneuverable_waypoints[(self.current_waypoint_idx +  getLookAheadDistance()) % len(self.maneuverable_waypoints)]
 
@@ -100,7 +97,17 @@ class RoarCompetitionSolution:
 
         waypointFar = self.maneuverable_waypoints[(self.current_waypoint_idx + int( getLookAheadDistance() + 30) ) % len(self.maneuverable_waypoints)]
 
-        waypoint_to_follow = waypointClose
+        x = 18
+        
+        next_x_waypoints = [
+        self.maneuverable_waypoints[(self.current_waypoint_idx + i + 3) % len(self.maneuverable_waypoints)]
+        for i in range(1, x)
+        ]
+
+    # Calculate the average location of the next 50 waypoints
+        avg_location = np.mean([waypoint.location for waypoint in next_x_waypoints], axis=0)
+        waypoint_to_follow = avg_location
+        
         #x and y components of each waypoint
         point1 = (waypointMedium.location[0], waypointMedium.location[1])
         point2 = (waypointClose.location[0], waypointClose.location[1])
@@ -124,7 +131,7 @@ class RoarCompetitionSolution:
                 def default_value():
                          return 1.8
                 frictionCoefficents = defaultdict(default_value,  {
-                            0 : 1.6,
+                            0 : 2,
                             #4 : .8,
                             6 : 1.1,
                             7 : 2.2,
@@ -150,7 +157,7 @@ class RoarCompetitionSolution:
 
 
         # Calculate delta vector towards the target waypoint
-        vector_to_waypoint = (waypoint_to_follow.location - vehicle_location)[:2]
+        vector_to_waypoint = (waypoint_to_follow - vehicle_location)[:2]
         heading_to_waypoint = np.arctan2(vector_to_waypoint[1],vector_to_waypoint[0])
 
         # Calculate delta angle towards the target waypoint
@@ -158,20 +165,20 @@ class RoarCompetitionSolution:
 
         # Proportional controller to steer the vehicle towards the target waypoint
         steer_control = (
-            -8.0 / np.sqrt(vehicle_velocity_norm) * delta_heading / np.pi
+            -20.0 / np.sqrt(vehicle_velocity_norm) * delta_heading / np.pi
         ) if vehicle_velocity_norm > 1e-2 else -np.sign(delta_heading)
         steer_control = np.clip(steer_control, -1.0, 1.0)
        
-        speed_error = targetSpeed - vehicle_velocity_norm * 3.6  # Convert vehicle speed to kph
+        speed_error = targetSpeed - vehicle_velocity_norm   # Convert vehicle speed to kph
         Kp = 8
 
             # Determine if reversing is necessary
-        if targetSpeed < 0.75 * vehicle_velocity_norm * 3.6: 
+        if targetSpeed < 0.75 * vehicle_velocity_norm: 
             throttle_control = -1  # Reverse with full throttle
             
         else:
             # Apply proportional controller for throttle
-            speed_error = targetSpeed - vehicle_velocity_norm * 3.6  # Convert vehicle speed to kph
+            speed_error = targetSpeed - vehicle_velocity_norm  # Convert vehicle speed to kph
             Kp = 5
             throttle_control = Kp * speed_error
 
@@ -182,11 +189,17 @@ class RoarCompetitionSolution:
             
         else:
             brake_control = 0.0
-            
 
-       # print("target: " + str(round(targetSpeed,3)) + "| curr kph: " + str(int(vehicle_velocity_norm * 3.6)))
+
         
+        if (1040 < self.current_waypoint_idx <1075):
+            throttle_control = -1
 
+        if 1595 < self.current_waypoint_idx < 1600:
+            throttle_control = -1
+
+        if 2380 < self.current_waypoint_idx < 2393:
+            throttle_control = -0.9
         
 
         control = {
