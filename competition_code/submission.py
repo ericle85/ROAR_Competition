@@ -125,13 +125,13 @@ class RoarCompetitionSolution:
                 frictionCoefficents = defaultdict(default_value,  {
                             0 : inf,
                             1 : 2.2, # 2.15 before
-                            2 : 3.7,
-                            3 : 4.6,
+                            2 : 3.8,
+                            3 : 4.7,
                             4 : 4.8,
                             5 : 4.7,
                             6 : 3.6, #3.4 before
                             7 : inf,
-                            8 : 3.3
+                            8 : 3.2
                 } )
         
                 coFriction = frictionCoefficents[int((self.current_waypoint_idx % 2775) / 308.33)]
@@ -146,7 +146,7 @@ class RoarCompetitionSolution:
             steer = -35
             x= 20
         elif 600 <= self.current_waypoint_idx % 2775 < 1990:
-            x = 27
+            x = 29
         elif 2600 < self.current_waypoint_idx % 2775 < 2725:
             x = 25
             steer = -25
@@ -187,11 +187,11 @@ class RoarCompetitionSolution:
             Kp = 1500
             throttle_control = Kp * speed_error
 
-        if (1282 < (self.current_waypoint_idx % 2775) <1314):
+        if (1283 < (self.current_waypoint_idx % 2775) <1314):
             throttle_control = -1
 
         if 2635 < (self.current_waypoint_idx % 2775) < 2700:
-           throttle_control = -.15
+           throttle_control = -.13
         
         if self.current_waypoint_idx % 2775 < 25:
             throttle_control = inf
