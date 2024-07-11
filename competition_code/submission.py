@@ -90,7 +90,7 @@ class RoarCompetitionSolution:
             if currentSpeed >= 180:
                 num = 35
             else:
-                num = 10
+                num = 12
             
             return num
         
@@ -106,9 +106,9 @@ class RoarCompetitionSolution:
         point2 = (waypointClose.location[0], waypointClose.location[1])
         point3 = (waypointFar.location[0], waypointFar.location[1])
       
-        l1 = round(math.dist(point1, point2), 5)
-        l2 = round(math.dist(point2, point3), 5)
-        l3 = round(math.dist(point1, point3),5)
+        l1 = round(math.dist(point1, point2), 3)
+        l2 = round(math.dist(point2, point3), 3)
+        l3 = round(math.dist(point1, point3),3)
         zeroChecker = 0.01
         sp = (l1 + l2 + l3) / 2
         area_squared =  sp * (sp - l1) * (sp - l2) * (sp - l3)
@@ -121,21 +121,20 @@ class RoarCompetitionSolution:
             # Check if area_squared is non-zero before calculating radius
             if area_squared > 0:
                 def default_value():
-                         return 3.4
+                         return 2.1
                 frictionCoefficents = defaultdict(default_value,  {
                             0 : inf,
-                            1 : 2.4,
-                            2 : 2.1,
-                            3 : 3.3,
-                            4 : 3.75,
-                            5 : 4.45,
-                            6 : 3.2,
-                            # 7 : inf,
-                            8 : inf,
-                            9 : 2.3
+                            1 : 2.2, # 2.15 before
+                            2 : 3.7,
+                            3 : 4.6,
+                            4 : 4.8,
+                            5 : 4.7,
+                            6 : 3.6, #3.4 before
+                            7 : inf,
+                            8 : 3.3
                 } )
         
-                coFriction = frictionCoefficents[int((self.current_waypoint_idx % 2775) / 277.5)]
+                coFriction = frictionCoefficents[int((self.current_waypoint_idx % 2775) / 308.33)]
                 print(str(coFriction))
                 radius = (l1 * l2 * l3) / (4 * math.sqrt(area_squared))
                 targetSpeed = math.sqrt(9.81 * coFriction * radius)
@@ -143,23 +142,22 @@ class RoarCompetitionSolution:
                 targetSpeed = inf
         
         steer = -37
-        if(self.current_waypoint_idx % 2775 < 1400):
-            x= 21
-        elif 1400 <= self.current_waypoint_idx % 2775 < 1990:
-            x = 25
+        if(self.current_waypoint_idx % 2775 < 600):
+            steer = -35
+            x= 20
+        elif 600 <= self.current_waypoint_idx % 2775 < 1990:
+            x = 27
         elif 2600 < self.current_waypoint_idx % 2775 < 2725:
-            x = 20
+            x = 25
             steer = -25
         else:
-            x = 38
-            
-
-        
+            x = 33
+    
         if (self.current_waypoint_idx % 2775) >= 2725:
             steer = -20
-            waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 9) % len(self.maneuverable_waypoints)].location      
-        elif 1730 < (self.current_waypoint_idx % 2775) < 2000:
-            waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 15) % len(self.maneuverable_waypoints)].location
+            waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 10) % len(self.maneuverable_waypoints)].location      
+        elif 1780 < (self.current_waypoint_idx % 2775) < 2000:
+            waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 18) % len(self.maneuverable_waypoints)].location
         else:
             next_x_waypoints = [
             self.maneuverable_waypoints[(self.current_waypoint_idx + i - 2 ) % len(self.maneuverable_waypoints)]
@@ -174,34 +172,28 @@ class RoarCompetitionSolution:
         delta_heading = normalize_rad(heading_to_waypoint - vehicle_rotation[2])
 
         # Proportional controller to steer the vehicle towards the target waypoint
-        
-        
         steer_control = (
             steer / np.sqrt(vehicle_velocity_norm) * delta_heading / np.pi
         ) if vehicle_velocity_norm > 1e-2 else -np.sign(delta_heading)
         steer_control = np.clip(steer_control, -1.0, 1.0)
        
-       
-
             # Determine if reversing is necessary
         if targetSpeed < 0.75 * vehicle_velocity_norm: 
-            throttle_control = -1.25 # Reverse with full throttle
+            throttle_control = -2 # Reverse with full throttle
             
         else:
             # Apply proportional controller for throttle
             speed_error = targetSpeed - vehicle_velocity_norm  # Convert vehicle speed to kph
-            Kp = 500
+            Kp = 1500
             throttle_control = Kp * speed_error
 
-
-        
-        if (1290 < (self.current_waypoint_idx % 2775) <1314):
-            throttle_control = -.75
+        if (1282 < (self.current_waypoint_idx % 2775) <1314):
+            throttle_control = -1
 
         if 2635 < (self.current_waypoint_idx % 2775) < 2700:
-           throttle_control = -.2
+           throttle_control = -.15
         
-        if self.current_waypoint_idx < 25:
+        if self.current_waypoint_idx % 2775 < 25:
             throttle_control = inf
         
         gear = max(1, (int)((vehicle_velocity_norm * 3.6) / 60))
