@@ -124,8 +124,8 @@ class RoarCompetitionSolution:
                 frictionCoefficents = defaultdict(default_value,  {
                             0 : inf,
                             1 : 2.2, # 2.15 before
-                            2 : 4,#4 .95
-                            3 : 4.7,
+                            2 : 4.1,#4 .95
+                            3 : 4.9,
                             4 : 4.9, #*
                             5 : 4.9,
                             6 : 3.5, #3.4 before
@@ -146,7 +146,7 @@ class RoarCompetitionSolution:
         if(self.current_waypoint_idx % 2775 < 600):
             x= 20
         elif 600 <= self.current_waypoint_idx % 2775 < 1990:
-            x = 29 #29
+            x = 30 #29
         elif 2600 < self.current_waypoint_idx % 2775 < 2725:
             x = 25
             steerSensativity = -25
