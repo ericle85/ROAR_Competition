@@ -142,21 +142,19 @@ class RoarCompetitionSolution:
         
         # X is how many waypoitns it looks ahead
         # So X = 20 means look 20 waypoint ahead and averages all waypoints from current location to the waypoint that is 20 ahead
+        x = 33       
         steerSensativity = -26 #37
-        if(self.current_waypoint_idx % 2775 < 570):
+        if 300 < (self.current_waypoint_idx % 2775) < 570:
             x= 20
-        elif 570 <= (self.current_waypoint_idx %2775 )< 780 :
-            x = 34
+        elif 570 <= (self.current_waypoint_idx % 2775) < 780:
+            x= 34
             steerSensativity = -32
-        elif 780 <= (self.current_waypoint_idx % 2775) < 1990:
+        elif 780 <= self.current_waypoint_idx % 2775 < 1990:
             x = 31 #29
-            
+            steerSensativity = -24
         elif 2600 < self.current_waypoint_idx % 2775 < 2725:
             x = 25
             steerSensativity = -25
-        else: 
-            x = 33
-
 
         #averages waypoints in order to get a smooth path
         if (self.current_waypoint_idx % 2775) >= 2725:
