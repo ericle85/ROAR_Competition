@@ -92,7 +92,7 @@ class RoarCompetitionSolution:
             
             return num
         
-        waypointClose = self.maneuverable_waypoints[(self.current_waypoint_idx + getLookAheadDistance()) % len(self.maneuverable_waypoints)]
+        waypointClose = self.maneuverable_waypoints[(self.current_waypoint_idx + getLookAheadDistance() - 2) % len(self.maneuverable_waypoints)]
 
         waypointMedium = self.maneuverable_waypoints[(self.current_waypoint_idx + getLookAheadDistance()+ 14) % len(self.maneuverable_waypoints)]
 
@@ -123,9 +123,9 @@ class RoarCompetitionSolution:
                          return 2.2
                 frictionCoefficents = defaultdict(default_value,  {
                             0 : inf,
-                            1 : 2.2, # 2.15 before
-                            2 : 4.1,#4 .95
-                            3 : 4.9,
+                            1 : 2, # 2.15 before
+                            2 : 4.1,#4 .1
+                            3 : 5.5,
                             4 : 4.9, #*
                             5 : 4.9,
                             6 : 3.5, #3.4 before
@@ -142,22 +142,26 @@ class RoarCompetitionSolution:
         
         # X is how many waypoitns it looks ahead
         # So X = 20 means look 20 waypoint ahead and averages all waypoints from current location to the waypoint that is 20 ahead
-        steerSensativity = -37 #37
-        if(self.current_waypoint_idx % 2775 < 600):
+        steerSensativity = -26 #37
+        if(self.current_waypoint_idx % 2775 < 570):
             x= 20
-        elif 600 <= self.current_waypoint_idx % 2775 < 1990:
-            x = 30 #29
+        elif 570 <= (self.current_waypoint_idx %2775 )< 780 :
+            x = 34
+            steerSensativity = -32
+        elif 780 <= (self.current_waypoint_idx % 2775) < 1990:
+            x = 31 #29
+            
         elif 2600 < self.current_waypoint_idx % 2775 < 2725:
             x = 25
             steerSensativity = -25
-        else:
-            x = 35
+        else: 
+            x = 33
 
 
         #averages waypoints in order to get a smooth path
         if (self.current_waypoint_idx % 2775) >= 2725:
             steerSensativity = -23
-            waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 11) % len(self.maneuverable_waypoints)].location      
+            waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 10) % len(self.maneuverable_waypoints)].location      
         else:
             next_x_waypoints = [
             self.maneuverable_waypoints[(self.current_waypoint_idx + i - 2 ) % len(self.maneuverable_waypoints)]
@@ -195,7 +199,7 @@ class RoarCompetitionSolution:
            throttle_control = -.08
         
         #always full throttle at the start
-        if self.current_waypoint_idx % 2775 < 35:
+        if self.current_waypoint_idx % 2775 < 20:
             throttle_control = inf
         
         gear = max(1, (int)((vehicle_velocity_norm * 3.6) / 60))
