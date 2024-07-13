@@ -124,11 +124,11 @@ class RoarCompetitionSolution:
                 frictionCoefficents = defaultdict(default_value,  {
                             0 : inf,
                             1 : 2, # 2.15 before
-                            2 : 4.1,#4 .1
-                            3 : 5.5,
+                            2 : 4.2,#4 .1
+                            3 : 5.6,
                             4 : 4.9, #*
                             5 : 4.9,
-                            6 : 3.5, #3.4 before
+                            6 : 3.5, 
                             7 : inf,
                             8 : 3.4
                 } )
@@ -145,7 +145,7 @@ class RoarCompetitionSolution:
         x = 33       
         steerSensativity = -26 #37
         if 300 < (self.current_waypoint_idx % 2775) < 570:
-            x= 20
+            x= 21
         elif 570 <= (self.current_waypoint_idx % 2775) < 780:
             x= 36
             steerSensativity = -33
@@ -158,7 +158,7 @@ class RoarCompetitionSolution:
 
         #averages waypoints in order to get a smooth path
         if (self.current_waypoint_idx % 2775) >= 2725:
-            steerSensativity = -23
+            steerSensativity = -22
             waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 11) % len(self.maneuverable_waypoints)].location      
         else:
             next_x_waypoints = [
