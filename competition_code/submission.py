@@ -7,7 +7,6 @@ import math
 from typing import List, Tuple, Dict, Optional
 import roar_py_interface
 import numpy as np
-import time
 
 def normalize_rad(rad : float):
     return (rad + np.pi) % (2 * np.pi) - np.pi
@@ -58,9 +57,7 @@ class RoarCompetitionSolution:
             self.current_waypoint_idx,
             self.maneuverable_waypoints
         )
-
         
-
     async def step(
         self
     ) -> None:
@@ -77,6 +74,7 @@ class RoarCompetitionSolution:
         vehicle_velocity = self.velocity_sensor.get_last_gym_observation()
         vehicle_velocity_norm = np.linalg.norm(vehicle_velocity)
         inf = float('inf')
+        
         
         # Find the waypoint closest to the vehicle
         self.current_waypoint_idx = filter_waypoints(
@@ -100,12 +98,11 @@ class RoarCompetitionSolution:
 
         waypointFar = self.maneuverable_waypoints[(self.current_waypoint_idx + getLookAheadDistance()+ 19) % len(self.maneuverable_waypoints)]
         
-        # waypoint_to_follow = avg_location
         #x and y components of each waypoint
         point1 = (waypointMedium.location[0], waypointMedium.location[1])
         point2 = (waypointClose.location[0], waypointClose.location[1])
         point3 = (waypointFar.location[0], waypointFar.location[1])
-      
+
         l1 = round(math.dist(point1, point2), 3)
         l2 = round(math.dist(point2, point3), 3)
         l3 = round(math.dist(point1, point3),3)
@@ -116,48 +113,51 @@ class RoarCompetitionSolution:
         # Check if any side lengths are very small
         
         if l1 < zeroChecker or l2 < zeroChecker or l3 < zeroChecker:
-            targetSpeed = inf  # Set a high value as a default or handle differently
+            targetSpeed = inf 
         else:
             # Check if area_squared is non-zero before calculating radius
             if area_squared > 0:
+                
+                #default CoFriction
                 def default_value():
-                         return 2.1
+                         return 2.2
                 frictionCoefficents = defaultdict(default_value,  {
                             0 : inf,
-                            1 : 2.21, # 2.15 before
-                            2 : 4,
+                            1 : 2.2, # 2.15 before
+                            2 : 4,#4 .95
                             3 : 4.7,
                             4 : 4.9, #*
-                            5 : 4.8,
-                            6 : 3.6, #3.4 before
+                            5 : 4.9,
+                            6 : 3.5, #3.4 before
                             7 : inf,
-                            8 : 3.5
+                            8 : 3.4
                 } )
         
                 coFriction = frictionCoefficents[int((self.current_waypoint_idx % 2775) / 308.33)]
-                print(str(coFriction))
+                #print(str(coFriction))
                 radius = (l1 * l2 * l3) / (4 * math.sqrt(area_squared))
                 targetSpeed = math.sqrt(9.81 * coFriction * radius)
             else:
                 targetSpeed = inf
         
-        steer = -37
+        # X is how many waypoitns it looks ahead
+        # So X = 20 means look 20 waypoint ahead and averages all waypoints from current location to the waypoint that is 20 ahead
+        steerSensativity = -37 #37
         if(self.current_waypoint_idx % 2775 < 600):
-            steer = -35
             x= 20
         elif 600 <= self.current_waypoint_idx % 2775 < 1990:
             x = 29 #29
         elif 2600 < self.current_waypoint_idx % 2775 < 2725:
             x = 25
-            steer = -25
+            steerSensativity = -25
         else:
-            x = 33
-    
+            x = 35
+
+
+        #averages waypoints in order to get a smooth path
         if (self.current_waypoint_idx % 2775) >= 2725:
-            steer = -20
-            waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 10) % len(self.maneuverable_waypoints)].location      
-        elif 1780 < (self.current_waypoint_idx % 2775) < 2000:
-            waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 18) % len(self.maneuverable_waypoints)].location
+            steerSensativity = -23
+            waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 11) % len(self.maneuverable_waypoints)].location      
         else:
             next_x_waypoints = [
             self.maneuverable_waypoints[(self.current_waypoint_idx + i - 2 ) % len(self.maneuverable_waypoints)]
@@ -173,31 +173,33 @@ class RoarCompetitionSolution:
 
         # Proportional controller to steer the vehicle towards the target waypoint
         steer_control = (
-            steer / np.sqrt(vehicle_velocity_norm) * delta_heading / np.pi
+            steerSensativity / np.sqrt(vehicle_velocity_norm) * delta_heading / np.pi
         ) if vehicle_velocity_norm > 1e-2 else -np.sign(delta_heading)
         steer_control = np.clip(steer_control, -1.0, 1.0)
-       
-            # Determine if reversing is necessary
-        if targetSpeed < 0.75 * vehicle_velocity_norm: 
-            throttle_control = -1.75 # Reverse with full throttle
-            
+     
+     #braking lightly if within a close range of target speed
+        if targetSpeed < 0.75  * vehicle_velocity_norm:  #.75
+            throttle_control = -2
         else:
             # Apply proportional controller for throttle
-            speed_error = targetSpeed - vehicle_velocity_norm  # Convert vehicle speed to kph
-            Kp = 2000
+            speed_error = targetSpeed - vehicle_velocity_norm
+            Kp = 1500 #acceleration constant
             throttle_control = Kp * speed_error
 
+
+        #slowing down for specific points
         if (1285 < (self.current_waypoint_idx % 2775) <1310):
-            throttle_control = -.8
+            throttle_control = -.05
 
         if 2635 < (self.current_waypoint_idx % 2775) < 2700:
-           throttle_control = -.05
+           throttle_control = -.08
         
-        if self.current_waypoint_idx % 2775 < 25:
+        #always full throttle at the start
+        if self.current_waypoint_idx % 2775 < 35:
             throttle_control = inf
         
         gear = max(1, (int)((vehicle_velocity_norm * 3.6) / 60))
-
+        
         control = {
             "throttle": np.clip(throttle_control, 0.0, 1.0),
             "steer": steer_control,
