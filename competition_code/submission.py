@@ -216,8 +216,6 @@ class RoarCompetitionSolution:
             # Apply proportional controller for throttle
             speed_error = targetSpeed - vehicle_velocity_norm
             tKp = 200 #acceleration constant
-            if vehicle_velocity_norm  > 65:
-                tKp = 50
               
             throttle_control = (tKp * speed_error)
  
@@ -226,7 +224,7 @@ class RoarCompetitionSolution:
             throttle_control = -.03
 
         if 2635 < (self.current_waypoint_idx % 2775) < 2700:
-           throttle_control = -.06
+           throttle_control = -.05
         
         #always full throttle at the start
         if self.current_waypoint_idx % 2775 < 20:
@@ -234,7 +232,6 @@ class RoarCompetitionSolution:
         
         gear = max(1, (int)((vehicle_velocity_norm * 3.6) / 60))
         
-        print(str(int(vehicle_velocity_norm)))
         control = {
             "throttle": np.clip(throttle_control, 0.0, 1.0),
             "steer": steer_control,
