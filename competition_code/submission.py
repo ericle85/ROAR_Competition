@@ -32,6 +32,7 @@ class RoarCompetitionSolution:
         rpy_sensor : roar_py_interface.RoarPyRollPitchYawSensor = None,
         occupancy_map_sensor : roar_py_interface.RoarPyOccupancyMapSensor = None,
         collision_sensor : roar_py_interface.RoarPyCollisionSensor = None,
+        Kp: float = 20
     ) -> None:
         self.maneuverable_waypoints = maneuverable_waypoints
         self.vehicle = vehicle
@@ -41,6 +42,7 @@ class RoarCompetitionSolution:
         self.rpy_sensor = rpy_sensor
         self.occupancy_map_sensor = occupancy_map_sensor
         self.collision_sensor = collision_sensor
+        self.Kp = Kp
     
     async def initialize(self) -> None:
         # TODO: You can do some initial computation here if you want to.
@@ -185,9 +187,10 @@ class RoarCompetitionSolution:
         self.steering_integral += steering_error
         self.prevSteerError = steering_error
         
-        Kp = 2.6
+        # Kp = 2.6
+        Kp = 2.8000000000000043
         Ki = 0.05
-        Kd = 6
+        Kd = self.Kp
 
 
         # if 2000 < self.current_waypoint_idx % 2725:
@@ -231,7 +234,11 @@ class RoarCompetitionSolution:
             throttle_control = inf
         
         gear = max(1, (int)((vehicle_velocity_norm * 3.6) / 60))
-        
+        # #print(
+        #     str(
+        #         round(Kp,3)
+        #     )
+        # )
         control = {
             "throttle": np.clip(throttle_control, 0.0, 1.0),
             "steer": steer_control,
