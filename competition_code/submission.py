@@ -7,7 +7,7 @@ import math
 from typing import List, Tuple, Dict, Optional
 import roar_py_interface
 import numpy as np
-
+import time
 def normalize_rad(rad : float):
     return (rad + np.pi) % (2 * np.pi) - np.pi
 
@@ -51,12 +51,18 @@ class RoarCompetitionSolution:
         vehicle_rotation = self.rpy_sensor.get_last_gym_observation()
         vehicle_velocity = self.velocity_sensor.get_last_gym_observation()
 
-        self.current_waypoint_idx = 0
+        self.current_waypoint_idx = 10
         self.current_waypoint_idx = filter_waypoints(
             vehicle_location,
             self.current_waypoint_idx,
             self.maneuverable_waypoints
         )
+
+        self.startTime = time.time()
+        self.prev_steering_error = 0
+        self.steering_integral = 0
+        self.prev_speed_error = 0
+        self.throttle_integral = 0
         
     async def step(
         self
@@ -91,6 +97,7 @@ class RoarCompetitionSolution:
                 num = 12
             
             return num
+    
         
         waypointClose = self.maneuverable_waypoints[(self.current_waypoint_idx + getLookAheadDistance() - 2) % len(self.maneuverable_waypoints)]
 
@@ -128,9 +135,9 @@ class RoarCompetitionSolution:
                             3 : 5.6,
                             4 : 4.9, #*
                             5 : 4.9,
-                            6 : 3.5, 
+                            6 : 3.6, 
                             7 : inf,
-                            8 : 3.4
+                            8 : 3.3
                 } )
         
                 coFriction = frictionCoefficents[int((self.current_waypoint_idx % 2775) / 308.33)]
@@ -142,21 +149,21 @@ class RoarCompetitionSolution:
         
         # X is how many waypoitns it looks ahead
         # So X = 20 means look 20 waypoint ahead and averages all waypoints from current location to the waypoint that is 20 ahead
-        x = 33       
+        x = 33      
         steerSensativity = -26 #37
         if 300 < (self.current_waypoint_idx % 2775) < 570:
-            x= 21
+            x= 22
         elif 570 <= (self.current_waypoint_idx % 2775) < 780:
             x= 36
-            steerSensativity = -33
+            steerSensativity = -30
         elif 780 <= self.current_waypoint_idx % 2775 < 1990:
             x = 31 #29
             steerSensativity = -24
-        elif 2600 < self.current_waypoint_idx % 2775 < 2725:
+        elif 2600 < self.current_waypoint_idx % 2725:
             x = 25
             steerSensativity = -25
-
-        #averages waypoints in order to get a smooth path
+        
+        # #averages waypoints in order to get a smooth path
         if (self.current_waypoint_idx % 2775) >= 2725:
             steerSensativity = -22
             waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 11) % len(self.maneuverable_waypoints)].location      
@@ -166,17 +173,40 @@ class RoarCompetitionSolution:
             for i in range(1, x)
             ]
             waypoint_to_follow = np.mean([waypoint.location for waypoint in next_x_waypoints], axis=0)  
-
+        
         vector_to_waypoint = (waypoint_to_follow - vehicle_location)[:2]
         heading_to_waypoint = np.arctan2(vector_to_waypoint[1],vector_to_waypoint[0])
 
         # Calculate delta angle towards the target waypoint
         delta_heading = normalize_rad(heading_to_waypoint - vehicle_rotation[2])
 
+        steering_error = delta_heading / np.pi
+        steering_derivative = steering_error - self.prev_steering_error
+        self.steering_integral += steering_error
+        self.prevSteerError = steering_error
+        
+        Kp = 2.6
+        Ki = 0.05
+        Kd = 6
+
+
+        # if 2000 < self.current_waypoint_idx % 2725:
+        #     Kp = 2.8
+        #     Kd = 5
         # Proportional controller to steer the vehicle towards the target waypoint
         steer_control = (
-            steerSensativity / np.sqrt(vehicle_velocity_norm) * delta_heading / np.pi
-        ) if vehicle_velocity_norm > 1e-2 else -np.sign(delta_heading)
+            Kp * steering_error +
+            Ki * self.steering_integral +
+            Kd * steering_derivative
+        )
+
+        self.prev_steering_error = steering_error
+
+        if vehicle_velocity_norm > 1e-2:
+            steer_control = -8.0 / np.sqrt(vehicle_velocity_norm) * steer_control
+        else:
+            steer_control = -np.sign(steer_control)
+        
         steer_control = np.clip(steer_control, -1.0, 1.0)
      
      #braking lightly if within a close range of target speed
@@ -185,16 +215,18 @@ class RoarCompetitionSolution:
         else:
             # Apply proportional controller for throttle
             speed_error = targetSpeed - vehicle_velocity_norm
-            Kp = 1500 #acceleration constant
-            throttle_control = Kp * speed_error
-
-
-        #slowing down for specific points
+            tKp = 200 #acceleration constant
+            if vehicle_velocity_norm  > 65:
+                tKp = 50
+              
+            throttle_control = (tKp * speed_error)
+ 
+    #slowing down for specific points
         if (1285 < (self.current_waypoint_idx % 2775) <1310):
-            throttle_control = -.05
+            throttle_control = -.03
 
         if 2635 < (self.current_waypoint_idx % 2775) < 2700:
-           throttle_control = -.08
+           throttle_control = -.06
         
         #always full throttle at the start
         if self.current_waypoint_idx % 2775 < 20:
@@ -202,6 +234,7 @@ class RoarCompetitionSolution:
         
         gear = max(1, (int)((vehicle_velocity_norm * 3.6) / 60))
         
+        print(str(int(vehicle_velocity_norm)))
         control = {
             "throttle": np.clip(throttle_control, 0.0, 1.0),
             "steer": steer_control,
