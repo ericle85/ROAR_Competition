@@ -94,7 +94,7 @@ class RoarCompetitionSolution:
         def getLookAheadDistance():
             currentSpeed =np.linalg.norm(self.velocity_sensor.get_last_gym_observation()) * 3.6
             if currentSpeed >= 180:
-                num = 35
+                num = 36
             else:
                 num = 12
             
@@ -134,7 +134,7 @@ class RoarCompetitionSolution:
                             0 : inf,
                             1 : 2, # 2.15 before
                             2 : 4.2,#4 .1
-                            3 : 5.6,
+                            3 : 5.7,
                             4 : 4.9, #*
                             5 : 4.9,
                             6 : 3.6, 
@@ -152,22 +152,18 @@ class RoarCompetitionSolution:
         # X is how many waypoitns it looks ahead
         # So X = 20 means look 20 waypoint ahead and averages all waypoints from current location to the waypoint that is 20 ahead
         x = 33      
-        steerSensativity = -26 #37
         if 300 < (self.current_waypoint_idx % 2775) < 570:
             x= 22
         elif 570 <= (self.current_waypoint_idx % 2775) < 780:
             x= 36
-            steerSensativity = -30
         elif 780 <= self.current_waypoint_idx % 2775 < 1990:
             x = 31 #29
-            steerSensativity = -24
         elif 2600 < self.current_waypoint_idx % 2725:
             x = 25
-            steerSensativity = -25
+
         
         # #averages waypoints in order to get a smooth path
         if (self.current_waypoint_idx % 2775) >= 2725:
-            steerSensativity = -22
             waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 11) % len(self.maneuverable_waypoints)].location      
         else:
             next_x_waypoints = [
@@ -190,12 +186,12 @@ class RoarCompetitionSolution:
         # Kp = 2.6
         Kp = 2.8000000000000043
         Ki = 0.05
-        Kd = self.Kp
+        Kd = 6
 
 
-        # if 2000 < self.current_waypoint_idx % 2725:
-        #     Kp = 2.8
-        #     Kd = 5
+        if 1000<  self.current_waypoint_idx % 2725 < 1500:
+            Kp = 2.3
+            Kd = 5
         # Proportional controller to steer the vehicle towards the target waypoint
         steer_control = (
             Kp * steering_error +
@@ -214,7 +210,7 @@ class RoarCompetitionSolution:
      
      #braking lightly if within a close range of target speed
         if targetSpeed < 0.75  * vehicle_velocity_norm:  #.75
-            throttle_control = -2
+            throttle_control = -1 # -1.8
         else:
             # Apply proportional controller for throttle
             speed_error = targetSpeed - vehicle_velocity_norm
@@ -236,7 +232,7 @@ class RoarCompetitionSolution:
         gear = max(1, (int)((vehicle_velocity_norm * 3.6) / 60))
         # #print(
         #     str(
-        #         round(Kp,3)
+        #         round(vehicle_velocity_norm)
         #     )
         # )
         control = {
