@@ -178,7 +178,7 @@ class RoarCompetitionSolution:
         if (self.current_waypoint_idx % 2775) >= 2725:
             waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 11) % len(self.maneuverable_waypoints)].location 
         elif (300 < self.current_waypoint_idx % 2775 < 570):
-            waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 4) % len(self.maneuverable_waypoints)].location
+            waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 5) % len(self.maneuverable_waypoints)].location
         # elif  1600 < (self.current_waypoint_idx % 2775) <= 2300:
         #     waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 20) % len(self.maneuverable_waypoints)].location
         else:
