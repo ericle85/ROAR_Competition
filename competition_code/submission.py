@@ -8,6 +8,7 @@ from typing import List, Tuple, Dict, Optional
 import roar_py_interface
 import numpy as np
 import time
+import os
 def normalize_rad(rad : float):
     return (rad + np.pi) % (2 * np.pi) - np.pi
 
@@ -48,12 +49,18 @@ class RoarCompetitionSolution:
         # TODO: You can do some initial computation here if you want to.
         # For example, you can compute the path to the first waypoint.
 
+
+        self.maneuverable_waypoints = (
+            roar_py_interface.RoarPyWaypoint.load_waypoint_list(
+                np.load(f"{os.path.dirname(__file__)}\\waypoint\\MonzaFinal.npz")
+            )
+        )
         # Receive location, rotation and velocity data 
         vehicle_location = self.location_sensor.get_last_gym_observation()
         vehicle_rotation = self.rpy_sensor.get_last_gym_observation()
         vehicle_velocity = self.velocity_sensor.get_last_gym_observation()
 
-        self.current_waypoint_idx = 10
+        self.current_waypoint_idx = 0
         self.current_waypoint_idx = filter_waypoints(
             vehicle_location,
             self.current_waypoint_idx,
@@ -132,18 +139,19 @@ class RoarCompetitionSolution:
                          return 2.2
                 frictionCoefficents = defaultdict(default_value,  {
                             0 : inf,
-                            1 : 2, # 2.15 before
-                            2 : 4.2,#4 .1
-                            3 : 5.7,
-                            4 : 4.9, #*
-                            5 : 4.9,
-                            6 : 3.6, 
+                            1 : 3, # 2.15 before
+                            2 : 3.3,
+                            3 : 3,
+                            4 : 3 , #*
+                            5 : 3,
+                            6 : 3,
                             7 : inf,
                             8 : 3.3
                 } )
         
                 coFriction = frictionCoefficents[int((self.current_waypoint_idx % 2775) / 308.33)]
                 #print(str(coFriction))
+
                 radius = (l1 * l2 * l3) / (4 * math.sqrt(area_squared))
                 targetSpeed = math.sqrt(9.81 * coFriction * radius)
             else:
@@ -151,20 +159,28 @@ class RoarCompetitionSolution:
         
         # X is how many waypoitns it looks ahead
         # So X = 20 means look 20 waypoint ahead and averages all waypoints from current location to the waypoint that is 20 ahead
-        x = 33      
+        x = 30      
         if 300 < (self.current_waypoint_idx % 2775) < 570:
-            x= 22
+            x= 15
         elif 570 <= (self.current_waypoint_idx % 2775) < 780:
-            x= 36
-        elif 780 <= self.current_waypoint_idx % 2775 < 1990:
-            x = 31 #29
+            x= 30
+        elif 780 <= self.current_waypoint_idx % 2775 < 1700:
+            x = 29 #29
+        elif 1700 <= self.current_waypoint_idx % 2775 < 2300:
+            x = 17
         elif 2600 < self.current_waypoint_idx % 2725:
-            x = 25
+            x = 15
 
-        
+
+        if 350< self.current_waypoint_idx % 2775 < 400:
+            targetSpeed = 60
         # #averages waypoints in order to get a smooth path
         if (self.current_waypoint_idx % 2775) >= 2725:
-            waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 11) % len(self.maneuverable_waypoints)].location      
+            waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 11) % len(self.maneuverable_waypoints)].location 
+        elif (300 < self.current_waypoint_idx % 2775 < 570):
+            waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 4) % len(self.maneuverable_waypoints)].location
+        # elif  1600 < (self.current_waypoint_idx % 2775) <= 2300:
+        #     waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 20) % len(self.maneuverable_waypoints)].location
         else:
             next_x_waypoints = [
             self.maneuverable_waypoints[(self.current_waypoint_idx + i - 2 ) % len(self.maneuverable_waypoints)]
@@ -184,14 +200,16 @@ class RoarCompetitionSolution:
         self.prevSteerError = steering_error
         
         # Kp = 2.6
-        Kp = 2.8000000000000043
-        Ki = 0.05
-        Kd = 6
+        Kp = 4
+        Ki = 0.1
+        Kd = 5
 
-
-        if 1000<  self.current_waypoint_idx % 2725 < 1500:
-            Kp = 2.3
-            Kd = 5
+        if 1600<  self.current_waypoint_idx % 2775 < 2300:
+            Kp = 8
+            Kd = 8.4
+        elif self.current_waypoint_idx % 2775 >= 2600:
+            Kp = 2.6
+            Kd = 8
         # Proportional controller to steer the vehicle towards the target waypoint
         steer_control = (
             Kp * steering_error +
@@ -219,22 +237,22 @@ class RoarCompetitionSolution:
             throttle_control = (tKp * speed_error)
  
     #slowing down for specific points
-        if (1285 < (self.current_waypoint_idx % 2775) <1310):
-            throttle_control = -.03
+        if (1290 < (self.current_waypoint_idx % 2775) <1345):
+            throttle_control = -.1
 
         if 2635 < (self.current_waypoint_idx % 2775) < 2700:
            throttle_control = -.05
         
         #always full throttle at the start
-        if self.current_waypoint_idx % 2775 < 20:
+        if self.current_waypoint_idx < 20:
             throttle_control = inf
         
         gear = max(1, (int)((vehicle_velocity_norm * 3.6) / 60))
-        # #print(
-        #     str(
-        #         round(vehicle_velocity_norm)
-        #     )
-        # )
+        print(
+            str(
+                round(vehicle_velocity_norm)
+            )
+        )
         control = {
             "throttle": np.clip(throttle_control, 0.0, 1.0),
             "steer": steer_control,
