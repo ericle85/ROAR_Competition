@@ -139,10 +139,10 @@ class RoarCompetitionSolution:
                          return 2.2
                 frictionCoefficents = defaultdict(default_value,  {
                             0 : inf,
-                            1 : 3, # 2.15 before
-                            2 : 3.3,
-                            3 : 3,
-                            4 : 3 , #*
+                            1 : 3.15, # 2.15 before
+                            2 : 3.4,
+                            3 : 3.1,
+                            4 : 3, #*
                             5 : 3,
                             6 : 3,
                             7 : inf,
@@ -163,7 +163,7 @@ class RoarCompetitionSolution:
         if 300 < (self.current_waypoint_idx % 2775) < 570:
             x= 15
         elif 570 <= (self.current_waypoint_idx % 2775) < 780:
-            x= 30
+            x= 32
         elif 780 <= self.current_waypoint_idx % 2775 < 1700:
             x = 29 #29
         elif 1700 <= self.current_waypoint_idx % 2775 < 2300:
