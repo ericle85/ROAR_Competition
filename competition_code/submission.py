@@ -137,8 +137,8 @@ class RoarCompetitionSolution:
                          return 2.2
                 frictionCoefficents = defaultdict(default_value,  {
                             0 : inf,
-                            1 : 3.2, # 2.15 before
-                            2 : 3.42,
+                            1 : 3.15, # 2.15 before
+                            2 : 3.4,
                             3 : 3.1,
                             4 : 3, #*
                             5 : 3,
@@ -171,12 +171,12 @@ class RoarCompetitionSolution:
 
 
         if 350< self.current_waypoint_idx % 2775 < 400:
-            targetSpeed = 61
+            targetSpeed = 60
         # #averages waypoints in order to get a smooth path
         if (self.current_waypoint_idx % 2775) >= 2725:
             waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 11) % len(self.maneuverable_waypoints)].location 
         elif (300 < self.current_waypoint_idx % 2775 < 570):
-            waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 6) % len(self.maneuverable_waypoints)].location
+            waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 5) % len(self.maneuverable_waypoints)].location
         # elif  1600 < (self.current_waypoint_idx % 2775) <= 2300:
         #     waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 20) % len(self.maneuverable_waypoints)].location
         else:
@@ -241,7 +241,7 @@ class RoarCompetitionSolution:
            throttle_control = -.05
         
         #always full throttle at the start
-        if self.current_waypoint_idx < 20:
+        if self.current_waypoint_idx < 30:
             throttle_control = inf
         
         gear = max(1, (int)((vehicle_velocity_norm * 3.6) / 60))
