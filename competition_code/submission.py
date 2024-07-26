@@ -165,7 +165,7 @@ class RoarCompetitionSolution:
         elif 780 <= self.current_waypoint_idx % 2775 < 1700:
             x = 29 #29
         elif 1700 <= self.current_waypoint_idx % 2775 < 2300:
-            x = 17
+            x = 30
         elif 2600 < self.current_waypoint_idx % 2725:
             x = 15
 
