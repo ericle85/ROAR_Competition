@@ -33,7 +33,6 @@ class RoarCompetitionSolution:
         rpy_sensor : roar_py_interface.RoarPyRollPitchYawSensor = None,
         occupancy_map_sensor : roar_py_interface.RoarPyOccupancyMapSensor = None,
         collision_sensor : roar_py_interface.RoarPyCollisionSensor = None,
-        Kp: float = 20
     ) -> None:
         self.maneuverable_waypoints = maneuverable_waypoints
         self.vehicle = vehicle
@@ -43,7 +42,6 @@ class RoarCompetitionSolution:
         self.rpy_sensor = rpy_sensor
         self.occupancy_map_sensor = occupancy_map_sensor
         self.collision_sensor = collision_sensor
-        self.Kp = Kp
     
     async def initialize(self) -> None:
         # TODO: You can do some initial computation here if you want to.
@@ -52,7 +50,7 @@ class RoarCompetitionSolution:
 
         self.maneuverable_waypoints = (
             roar_py_interface.RoarPyWaypoint.load_waypoint_list(
-                np.load(f"{os.path.dirname(__file__)}\\waypoint\\MonzaFinal.npz")
+                np.load(f"{os.path.dirname(__file__)}\\racinglines\\MonzaFinal.npz")
             )
         )
         # Receive location, rotation and velocity data 
@@ -139,8 +137,8 @@ class RoarCompetitionSolution:
                          return 2.2
                 frictionCoefficents = defaultdict(default_value,  {
                             0 : inf,
-                            1 : 3.15, # 2.15 before
-                            2 : 3.4,
+                            1 : 3.2, # 2.15 before
+                            2 : 3.42,
                             3 : 3.1,
                             4 : 3, #*
                             5 : 3,
@@ -173,12 +171,12 @@ class RoarCompetitionSolution:
 
 
         if 350< self.current_waypoint_idx % 2775 < 400:
-            targetSpeed = 60
+            targetSpeed = 61
         # #averages waypoints in order to get a smooth path
         if (self.current_waypoint_idx % 2775) >= 2725:
             waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 11) % len(self.maneuverable_waypoints)].location 
         elif (300 < self.current_waypoint_idx % 2775 < 570):
-            waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 5) % len(self.maneuverable_waypoints)].location
+            waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 6) % len(self.maneuverable_waypoints)].location
         # elif  1600 < (self.current_waypoint_idx % 2775) <= 2300:
         #     waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 20) % len(self.maneuverable_waypoints)].location
         else:
@@ -203,7 +201,6 @@ class RoarCompetitionSolution:
         Kp = 4
         Ki = 0.1
         Kd = 5
-
         if 1600<  self.current_waypoint_idx % 2775 < 2300:
             Kp = 8
             Kd = 8.4
