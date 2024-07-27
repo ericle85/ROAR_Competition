@@ -161,7 +161,7 @@ class RoarCompetitionSolution:
         if 300 < (self.current_waypoint_idx % 2775) < 570:
             x= 15
         elif 570 <= (self.current_waypoint_idx % 2775) < 780:
-            x= 32
+            x= 31
         elif 780 <= self.current_waypoint_idx % 2775 < 1700:
             x = 29 #29
         elif 1700 <= self.current_waypoint_idx % 2775 < 2300:
@@ -205,7 +205,7 @@ class RoarCompetitionSolution:
             Kp = 8
             Kd = 8.4
         elif self.current_waypoint_idx % 2775 >= 2600:
-            Kp = 2.6
+            Kp = 2.4
             Kd = 8
         # Proportional controller to steer the vehicle towards the target waypoint
         steer_control = (
