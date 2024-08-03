@@ -46,11 +46,10 @@ class RoarCompetitionSolution:
     async def initialize(self) -> None:
         # TODO: You can do some initial computation here if you want to.
         # For example, you can compute the path to the first waypoint.
-
-
+        #load my racing line I generated
         self.maneuverable_waypoints = (
             roar_py_interface.RoarPyWaypoint.load_waypoint_list(
-                np.load(f"{os.path.dirname(__file__)}\\racinglines\\MonzaFinal.npz")
+                np.load(f"{os.path.dirname(__file__)}\\racinglines\\MyRacingLine.npz")
             )
         )
         # Receive location, rotation and velocity data 
@@ -95,14 +94,14 @@ class RoarCompetitionSolution:
             self.current_waypoint_idx,
             self.maneuverable_waypoints
         )
-
+        #getting lookahead distance to calculate the max turn speed. Faster the car goes the farther it looks ahead so it has more time to slow down to desired speed
         def getLookAheadDistance():
             currentSpeed =np.linalg.norm(self.velocity_sensor.get_last_gym_observation()) * 3.6
             if currentSpeed >= 180:
                 num = 36
             else:
                 num = 12
-            
+            #any speed faster than 180 kph look 36 waypoints ahead
             return num
     
         
@@ -132,7 +131,8 @@ class RoarCompetitionSolution:
             # Check if area_squared is non-zero before calculating radius
             if area_squared > 0:
                 
-                #default CoFriction
+                #default coefficent of friciton is 2.2
+                # I split the track into 9 sections, each having different frictions
                 def default_value():
                          return 2.2
                 frictionCoefficents = defaultdict(default_value,  {
@@ -156,11 +156,9 @@ class RoarCompetitionSolution:
                 targetSpeed = inf
         
         # X is how many waypoitns it looks ahead
-        # So X = 20 means look 20 waypoint ahead and averages all waypoints from current location to the waypoint that is 20 ahead
+        # So X = 30 means look 30 waypoint ahead and averages all waypoints from current location to the waypoint that is 30 ahead
         x = 30      
-        if 300 < (self.current_waypoint_idx % 2775) < 570:
-            x= 15
-        elif 570 <= (self.current_waypoint_idx % 2775) < 780:
+        if 570 <= (self.current_waypoint_idx % 2775) < 780:
             x= 31
         elif 780 <= self.current_waypoint_idx % 2775 < 1700:
             x = 29 #29
@@ -169,17 +167,16 @@ class RoarCompetitionSolution:
         elif 2600 < self.current_waypoint_idx % 2725:
             x = 15
 
-
+        # speed gate so every lap enters with the same speed, as lap 2 and 3 usually come in with different speeds cuz already have momentum
         if 350< self.current_waypoint_idx % 2775 < 400:
             targetSpeed = 60
-        # #averages waypoints in order to get a smooth path
+        # certain waypoints will behave differently due to sharp turns
         if (self.current_waypoint_idx % 2775) >= 2725:
             waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 11) % len(self.maneuverable_waypoints)].location 
         elif (300 < self.current_waypoint_idx % 2775 < 570):
             waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 5) % len(self.maneuverable_waypoints)].location
-        # elif  1600 < (self.current_waypoint_idx % 2775) <= 2300:
-        #     waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 20) % len(self.maneuverable_waypoints)].location
         else:
+            #averages the waypoints
             next_x_waypoints = [
             self.maneuverable_waypoints[(self.current_waypoint_idx + i - 2 ) % len(self.maneuverable_waypoints)]
             for i in range(1, x)
@@ -197,14 +194,14 @@ class RoarCompetitionSolution:
         self.steering_integral += steering_error
         self.prevSteerError = steering_error
         
-        # Kp = 2.6
+        # default steering settings
         Kp = 4
         Ki = 0.1
         Kd = 5
-        if 1600<  self.current_waypoint_idx % 2775 < 2300:
+        if 1600<  self.current_waypoint_idx % 2775 < 2300: # override steering settings for the mega big turn 
             Kp = 8
             Kd = 8.4
-        elif self.current_waypoint_idx % 2775 >= 2600:
+        elif self.current_waypoint_idx % 2775 >= 2600: # less sensative for the little chicane at the very end of each lap
             Kp = 2.4
             Kd = 8
         # Proportional controller to steer the vehicle towards the target waypoint
@@ -223,7 +220,7 @@ class RoarCompetitionSolution:
         
         steer_control = np.clip(steer_control, -1.0, 1.0)
      
-     #braking lightly if within a close range of target speed
+        #braking if within a close range of target speed
         if targetSpeed < 0.75  * vehicle_velocity_norm:  #.75
             throttle_control = -1 # -1.8
         else:
@@ -233,7 +230,7 @@ class RoarCompetitionSolution:
               
             throttle_control = (tKp * speed_error)
  
-    #slowing down for specific points
+        #slowing down for specific points
         if (1290 < (self.current_waypoint_idx % 2775) <1345):
             throttle_control = -.1
 
@@ -247,7 +244,7 @@ class RoarCompetitionSolution:
         gear = max(1, (int)((vehicle_velocity_norm * 3.6) / 60))
         print(
             str(
-                round(vehicle_velocity_norm)
+                round(vehicle_velocity_norm) #print speesd
             )
         )
         control = {
@@ -255,7 +252,7 @@ class RoarCompetitionSolution:
             "steer": steer_control,
             "brake": np.clip(-throttle_control, 0.0, 1.0),
             "hand_brake": 0.0,
-            "reverse": 0 if throttle_control < 0 else 0,
+            "reverse": 0,
             "target_gear": gear
         }
         await self.vehicle.apply_action(control)
