@@ -137,14 +137,14 @@ class RoarCompetitionSolution:
                          return 2.2
                 frictionCoefficents = defaultdict(default_value,  {
                             0 : inf,
-                            1 : 3.15, # 2.15 before
+                            1 : 3.25, # 2.15 before
                             2 : 3.4,
-                            3 : 3.1,
-                            4 : 3, #*
-                            5 : 3,
-                            6 : 3,
+                            3 : inf,
+                            4 : inf, #*
+                            5 : 3.3,
+                            6 : 3.4,
                             7 : inf,
-                            8 : 3.3
+                            8 : 3.6
                 } )
         
                 coFriction = frictionCoefficents[int((self.current_waypoint_idx % 2775) / 308.33)]
@@ -158,23 +158,23 @@ class RoarCompetitionSolution:
         # X is how many waypoitns it looks ahead
         # So X = 30 means look 30 waypoint ahead and averages all waypoints from current location to the waypoint that is 30 ahead
         x = 30      
-        if 570 <= (self.current_waypoint_idx % 2775) < 780:
+        if 570 <= (self.current_waypoint_idx % 2775) < 850:
             x= 31
-        elif 780 <= self.current_waypoint_idx % 2775 < 1700:
+        elif 1000 <= self.current_waypoint_idx % 2775 < 1700:
             x = 29 #29
         elif 1700 <= self.current_waypoint_idx % 2775 < 2300:
-            x = 30
-        elif 2600 < self.current_waypoint_idx % 2725:
-            x = 15
+            x = 31
+        elif 2600 < self.current_waypoint_idx % 2722:
+            x = 19
 
         # speed gate so every lap enters with the same speed, as lap 2 and 3 usually come in with different speeds cuz already have momentum
         if 350< self.current_waypoint_idx % 2775 < 400:
-            targetSpeed = 60
+            targetSpeed = 62
         # certain waypoints will behave differently due to sharp turns
-        if (self.current_waypoint_idx % 2775) >= 2725:
+        if (self.current_waypoint_idx % 2775) >= 2722:
             waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 11) % len(self.maneuverable_waypoints)].location 
         elif (300 < self.current_waypoint_idx % 2775 < 570):
-            waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 5) % len(self.maneuverable_waypoints)].location
+            waypoint_to_follow = self.maneuverable_waypoints[(self.current_waypoint_idx + 6) % len(self.maneuverable_waypoints)].location
         else:
             #averages the waypoints
             next_x_waypoints = [
@@ -195,11 +195,14 @@ class RoarCompetitionSolution:
         self.prevSteerError = steering_error
         
         # default steering settings
-        Kp = 4
+        Kp = 5.6
         Ki = 0.1
         Kd = 5
+        if  570 < self.current_waypoint_idx % 2775 < 780:
+            Kp = 4
+            Kd = 6
         if 1600<  self.current_waypoint_idx % 2775 < 2300: # override steering settings for the mega big turn 
-            Kp = 8
+            Kp = 8.5
             Kd = 8.4
         elif self.current_waypoint_idx % 2775 >= 2600: # less sensative for the little chicane at the very end of each lap
             Kp = 2.4
