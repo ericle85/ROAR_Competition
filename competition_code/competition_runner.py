@@ -7,7 +7,7 @@ import carla
 import numpy as np
 import gymnasium as gym
 import asyncio
-
+import time
 class RoarCompetitionRule:
     def __init__(
         self,
@@ -77,7 +77,7 @@ class RoarCompetitionRule:
         
         self.furthest_waypoints_index += min_index #= new_furthest_index
         self._last_vehicle_location = current_location
-        print(f"reach waypoints {self.furthest_waypoints_index} at {self.waypoints[self.furthest_waypoints_index].location}")
+        # print(f"reach waypoints {self.furthest_waypoints_index} at {self.waypoints[self.furthest_waypoints_index].location}")
 
     
     async def respawn(
@@ -165,9 +165,10 @@ async def evaluate_solution(
         velocity_sensor,
         rpy_sensor,
         occupancy_map_sensor,
-        collision_sensor
+        collision_sensor,
+        target_speed=34.25
     )
-    rule = RoarCompetitionRule(waypoints * 3,vehicle,world) # 3 laps
+    rule = RoarCompetitionRule(waypoints * 1,vehicle,world) # 3 laps
 
     for _ in range(20):
         await world.step()
@@ -231,12 +232,14 @@ async def main():
     world = roar_py_instance.world
     world.set_control_steps(0.05, 0.005)
     world.set_asynchronous(False)
+    real_life_time = time.time()
     evaluation_result = await evaluate_solution(
         world,
         RoarCompetitionSolution,
         max_seconds=5000,
-        enable_visualization=True
+        enable_visualization=False
     )
+    print(time.time()- real_life_time)
     if evaluation_result is not None:
         print("Solution finished in {} seconds".format(evaluation_result["elapsed_time"]))
     else:

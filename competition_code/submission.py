@@ -33,6 +33,7 @@ class RoarCompetitionSolution:
         rpy_sensor : roar_py_interface.RoarPyRollPitchYawSensor = None,
         occupancy_map_sensor : roar_py_interface.RoarPyOccupancyMapSensor = None,
         collision_sensor : roar_py_interface.RoarPyCollisionSensor = None,
+        target_speed: float = 34.25,
     ) -> None:
         self.maneuverable_waypoints = maneuverable_waypoints
         self.vehicle = vehicle
@@ -42,6 +43,7 @@ class RoarCompetitionSolution:
         self.rpy_sensor = rpy_sensor
         self.occupancy_map_sensor = occupancy_map_sensor
         self.collision_sensor = collision_sensor
+        self.target_speed = target_speed
     
     async def initialize(self) -> None:
         # TODO: You can do some initial computation here if you want to.

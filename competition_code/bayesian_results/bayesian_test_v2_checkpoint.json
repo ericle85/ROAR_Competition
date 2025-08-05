@@ -1,0 +1,17 @@
+{
+  "experiment_name": "bayesian_test_v2",
+  "evaluation_count": 1,
+  "best_parameters": {
+    "target_speed": 34.2579654298686
+  },
+  "best_fitness": 113.19999999999554,
+  "timestamp": 1754359008.9480262,
+  "config": {
+    "target_speed_min": 34.25,
+    "target_speed_max": 34.26,
+    "n_calls": 50,
+    "n_initial_points": 4,
+    "num_laps_per_eval": 1
+  },
+  "results_history": []
+}
